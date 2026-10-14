@@ -202,7 +202,7 @@
           "name": "API key and a made-up token",
           "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 (token not issued by Entra ID)', () => pm.response.to.have.status(401));"] } }],
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "eyJhbGciOiJSUzI1NiJ9.eyJyb2xlcyI6WyJGZWVBZG1pbiJdfQ.c2lnbmF0dXJl", "type": "string" }] },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "made-up-token-claiming-to-be-FeeAdmin", "type": "string" }] },
             "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/1/fees"
           }
         }
