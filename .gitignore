@@ -1,6 +1,7 @@
-# Dependencies and build output
+# Dependencies, build output and the deployment staging folder (npm run deploy)
 node_modules/
 dist/
+.deploy/
 *.tsbuildinfo
 
 # Secrets and machine-specific settings (never committed)

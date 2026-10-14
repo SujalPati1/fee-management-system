@@ -32,6 +32,9 @@ param sqlAdminObjectId string
 @description('Time zone that decides which day "today" is for due dates.')
 param feeTimeZone string = 'Asia/Kolkata'
 
+@description('Application (client) ID of the "Fee API" app registration, printed by scripts/entra-setup.ps1. Tokens must be issued for it.')
+param feeApiClientId string
+
 var functionAppName = 'func-${appName}-${suffix}'
 var storageAccountName = 'st${appName}${suffix}'
 var sqlServerName = 'sql-${appName}-${suffix}'
@@ -120,6 +123,9 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         { name: 'SQL_SERVER', value: '${sqlServerName}${environment().suffixes.sqlServerHostname}' }
         { name: 'SQL_DATABASE', value: sqlDatabaseName }
         { name: 'FEE_TIMEZONE', value: feeTimeZone }
+        // The Function checks every token itself: issued by this tenant, for the Fee API.
+        { name: 'ENTRA_TENANT_ID', value: subscription().tenantId }
+        { name: 'ENTRA_API_CLIENT_ID', value: feeApiClientId }
       ]
     }
     functionAppConfig: {
