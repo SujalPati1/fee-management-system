@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    // "type": "module" in package.json + "nodenext" = ES modules, following Node's own rules.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Imports are written with ".ts" so Node can run the tests directly (node --test);
+    // tsc rewrites them to ".js" in dist/. Only syntax Node can strip is allowed.
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+
+    // Strict mode: the compiler refuses code that ignores a possible null or undefined.
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}

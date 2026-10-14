@@ -1,0 +1,13 @@
+.git*
+.vscode
+src
+tests
+dist/tests
+infra
+sql
+scripts
+docs
+postman
+README.md
+tsconfig.json
+*.log

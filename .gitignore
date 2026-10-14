@@ -1,0 +1,25 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Secrets and machine-specific settings (never committed)
+.env
+.env.*
+local.settings.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Files the Postman app creates when it opens this folder (may hold keys or tokens)
+.postman/
+postman/globals/
+postman/environments/
