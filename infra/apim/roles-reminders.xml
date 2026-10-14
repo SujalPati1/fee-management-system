@@ -1,0 +1,29 @@
+<!--
+  GET /reminders/overdue: the token must carry the Reminders.Read role, otherwise 403.
+  That role can only be assigned to applications (the Logic App's managed identity), never to people.
+-->
+<policies>
+  <inbound>
+    <base />
+    <validate-azure-ad-token tenant-id="{{entra-tenant-id}}" failed-validation-httpcode="403"
+                             failed-validation-error-message="This needs the Reminders.Read role.">
+      <audiences>
+        <audience>{{fee-api-client-id}}</audience>
+      </audiences>
+      <required-claims>
+        <claim name="roles" match="any">
+          <value>Reminders.Read</value>
+        </claim>
+      </required-claims>
+    </validate-azure-ad-token>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

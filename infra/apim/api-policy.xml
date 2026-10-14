@@ -1,0 +1,35 @@
+<!--
+  Fee API policy: runs for every operation, before the operation's own role check.
+  The gateway has already rejected calls without a valid API key (the API requires a subscription).
+    1. rate limit per API key                      (brief Task 3: rate limiting)
+    2. Entra ID token: this tenant, for the Fee API (technical requirement: Azure AD authentication)
+    3. forward to the Function with its key, which only API Management knows
+  Named values in {{ }} are set by infra/main.bicep; function-key is stored as a secret.
+-->
+<policies>
+  <inbound>
+    <base />
+    <!-- 30 calls per 60 seconds per API key; the 31st gets 429 with Retry-After. -->
+    <rate-limit calls="30" renewal-period="60" />
+    <validate-azure-ad-token tenant-id="{{entra-tenant-id}}" failed-validation-httpcode="401"
+                             failed-validation-error-message="A valid Entra ID token for the Fee API is required.">
+      <audiences>
+        <audience>{{fee-api-client-id}}</audience>
+      </audiences>
+    </validate-azure-ad-token>
+    <set-header name="x-functions-key" exists-action="override">
+      <value>{{function-key}}</value>
+    </set-header>
+    <!-- The caller's API key is for API Management only; it is not passed on to the Function. -->
+    <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

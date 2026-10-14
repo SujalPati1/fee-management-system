@@ -1,0 +1,31 @@
+<!--
+  GET /students/{id}/fees: the token must carry the Student or FeeAdmin role, otherwise 403.
+  Which row a student may read (their own) is checked by the Function, which compares the token's
+  oid with the row's EntraObjectId.
+-->
+<policies>
+  <inbound>
+    <base />
+    <validate-azure-ad-token tenant-id="{{entra-tenant-id}}" failed-validation-httpcode="403"
+                             failed-validation-error-message="This needs the Student or FeeAdmin role.">
+      <audiences>
+        <audience>{{fee-api-client-id}}</audience>
+      </audiences>
+      <required-claims>
+        <claim name="roles" match="any">
+          <value>Student</value>
+          <value>FeeAdmin</value>
+        </claim>
+      </required-claims>
+    </validate-azure-ad-token>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

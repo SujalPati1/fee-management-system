@@ -1,0 +1,29 @@
+<!--
+  GET /students and PATCH /students/{id}: the token must carry the FeeAdmin role, otherwise 403.
+  The Function also checks that the caller is listed in the Administrators table.
+-->
+<policies>
+  <inbound>
+    <base />
+    <validate-azure-ad-token tenant-id="{{entra-tenant-id}}" failed-validation-httpcode="403"
+                             failed-validation-error-message="This needs the FeeAdmin role.">
+      <audiences>
+        <audience>{{fee-api-client-id}}</audience>
+      </audiences>
+      <required-claims>
+        <claim name="roles" match="any">
+          <value>FeeAdmin</value>
+        </claim>
+      </required-claims>
+    </validate-azure-ad-token>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

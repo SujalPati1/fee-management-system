@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "Fee Management System",
+    "description": "Calls the Fee API through Azure API Management.\n\nSetup (once): import this collection and postman/fee-management.postman_environment.json, select the environment, and paste the postman-demo API key into subscriptionKey (see docs/DEPLOYMENT.md).\n\nSign in: open the collection's Authorization tab > Get New Access Token > choose the account (you = FeeAdmin, a guest = Student) > Use Token. Run folder 1 as the admin and folder 2 as a student (set ownStudentId and otherStudentId first). Folder 4 uses up the key's rate limit, so run it last.\n\nPostman CLI: pass the token and key as variables, e.g. postman collection run postman/fee-management.postman_collection.json -e postman/fee-management.postman_environment.json --env-var accessToken=... --env-var subscriptionKey=... -i \"1 Admin (sign in as FeeAdmin)\"",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      { "key": "grant_type", "value": "authorization_code_with_pkce", "type": "string" },
+      { "key": "authUrl", "value": "https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/authorize", "type": "string" },
+      { "key": "accessTokenUrl", "value": "https://login.microsoftonline.com/{{tenantId}}/oauth2/v2.0/token", "type": "string" },
+      { "key": "clientId", "value": "{{clientId}}", "type": "string" },
+      { "key": "scope", "value": "{{scope}}", "type": "string" },
+      { "key": "redirect_uri", "value": "https://oauth.pstmn.io/v1/callback", "type": "string" },
+      { "key": "useBrowser", "value": true, "type": "boolean" },
+      { "key": "challengeAlgorithm", "value": "S256", "type": "string" },
+      { "key": "client_authentication", "value": "body", "type": "string" },
+      { "key": "tokenName", "value": "Fee API token", "type": "string" },
+      {
+        "key": "authRequestParams",
+        "value": [{ "key": "prompt", "value": "select_account", "enabled": true, "send_as": "request_url" }],
+        "type": "any"
+      },
+      { "key": "accessToken", "value": "{{accessToken}}", "type": "string" },
+      { "key": "headerPrefix", "value": "Bearer", "type": "string" },
+      { "key": "addTokenTo", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://apim-feemgmt-k7x2pq.azure-api.net/fees" },
+    { "key": "tenantId", "value": "2145b90d-af2a-43cb-b93b-fa836c9b4b84" },
+    { "key": "clientId", "value": "4956ab74-88d0-4bee-bf6e-7c6f7ee70bce" },
+    { "key": "scope", "value": "api://e0412180-09d9-4bd2-8480-bdecf8871490/access_as_user openid profile offline_access" }
+  ],
+  "item": [
+    {
+      "name": "1 Admin (sign in as FeeAdmin)",
+      "item": [
+        {
+          "name": "Get student 1 (overdue)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('status is Overdue', () => pm.expect(b.status).to.eql('Overdue'));",
+            "pm.test('amounts are exact strings', () => { pm.expect(b.totalFee).to.eql('120000.00'); pm.expect(b.balance).to.eql('60000.00'); });"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/1/fees" }
+        },
+        {
+          "name": "Get student 4 (balance 0.10, the float trap)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('balance is exactly 0.10', () => pm.expect(pm.response.json().balance).to.eql('0.10'));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/4/fees" }
+        },
+        {
+          "name": "Get a student that does not exist",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/999999/fees" }
+        },
+        {
+          "name": "List overdue students",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('every row is Overdue', () => pm.expect(b.students.every(s => s.status === 'Overdue')).to.be.true);",
+            "pm.test('total matches the rows (one page)', () => pm.expect(b.total).to.eql(b.students.length));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students?status=Overdue" }
+        },
+        {
+          "name": "List all students, page 2 (5,000+ rows, 50 per page)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.test('50 rows on the page', () => pm.expect(b.students.length).to.eql(50));",
+            "pm.test('at least 5,000 students in total', () => pm.expect(b.total).to.be.at.least(5000));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students?page=2" }
+        },
+        {
+          "name": "Update student 4: overpayment is refused",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
+            "pm.test('error is Overpayment', () => pm.expect(pm.response.json().error).to.eql('Overpayment'));"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"paidAmount\": 10000.11 }" },
+            "url": "{{baseUrl}}/students/4"
+          }
+        },
+        {
+          "name": "Update student 4: more than 2 decimals is refused",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"paidAmount\": 1.005 }" },
+            "url": "{{baseUrl}}/students/4"
+          }
+        },
+        {
+          "name": "Update student 4: pay the last 0.10",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('now Paid with balance 0.00', () => { const b = pm.response.json(); pm.expect(b.status).to.eql('Paid'); pm.expect(b.balance).to.eql('0.00'); });"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"paidAmount\": 10000.10 }" },
+            "url": "{{baseUrl}}/students/4"
+          }
+        },
+        {
+          "name": "Update student 4: restore the seed value",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('back to Overdue with balance 0.10', () => { const b = pm.response.json(); pm.expect(b.status).to.eql('Overdue'); pm.expect(b.balance).to.eql('0.10'); });"
+          ] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"paidAmount\": 10000.00 }" },
+            "url": "{{baseUrl}}/students/4"
+          }
+        },
+        {
+          "name": "Reminder list as a person is refused",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 Forbidden (Reminders.Read is for the Logic App only)', () => pm.response.to.have.status(403));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/reminders/overdue" }
+        }
+      ]
+    },
+    {
+      "name": "2 Student (sign in as a guest student)",
+      "description": "Set ownStudentId to the signed-in student's row (1 for guest 1, 5 for guest 2) and otherStudentId to the other one.",
+      "item": [
+        {
+          "name": "Own fee record",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('it is my row', () => pm.expect(String(pm.response.json().studentId)).to.eql(pm.variables.get('ownStudentId')));"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/{{ownStudentId}}/fees" }
+        },
+        {
+          "name": "Another student's record is refused",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/{{otherStudentId}}/fees" }
+        },
+        {
+          "name": "A student id that does not exist is refused the same way",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 Forbidden (no hint whether the id exists)', () => pm.response.to.have.status(403));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/999999/fees" }
+        },
+        {
+          "name": "Admin list is refused",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students?status=Overdue" }
+        },
+        {
+          "name": "Updating fees is refused",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] } }],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"paidAmount\": 120000.00 }" },
+            "url": "{{baseUrl}}/students/{{ownStudentId}}"
+          }
+        },
+        {
+          "name": "Reminder list is refused",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/reminders/overdue" }
+        }
+      ]
+    },
+    {
+      "name": "3 Security (any sign-in)",
+      "item": [
+        {
+          "name": "No API key",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 from API Management', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/students/1/fees" }
+        },
+        {
+          "name": "Wrong API key",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 from API Management', () => pm.response.to.have.status(401));"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "00000000000000000000000000000000" }], "url": "{{baseUrl}}/students/1/fees" }
+        },
+        {
+          "name": "API key but no token",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 (Entra ID token required)', () => pm.response.to.have.status(401));"] } }],
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/1/fees" }
+        },
+        {
+          "name": "API key and a made-up token",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 (token not issued by Entra ID)', () => pm.response.to.have.status(401));"] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "eyJhbGciOiJSUzI1NiJ9.eyJyb2xlcyI6WyJGZWVBZG1pbiJdfQ.c2lnbmF0dXJl", "type": "string" }] },
+            "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/1/fees"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 Rate limit (run last: uses up the key for 60 s)",
+      "item": [
+        {
+          "name": "31 calls in a row: the 31st gets 429",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "// This request is call 1. The script makes calls 2..31 one after another.",
+            "const req = { url: pm.request.url.toString(), method: 'GET', header: { 'Ocp-Apim-Subscription-Key': pm.variables.get('subscriptionKey') } };",
+            "const codes = [pm.response.code];",
+            "function next() {",
+            "  if (codes.length === 31) {",
+            "    // Earlier calls with the same key in the last 60 s also count, so the 429 can come sooner.",
+            "    pm.test('at most 30 calls get through per minute', () => pm.expect(codes.filter(c => c !== 429).length).to.be.at.most(30));",
+            "    pm.test('the key is then refused with 429 Too Many Requests', () => pm.expect(codes[30]).to.eql(429));",
+            "    return;",
+            "  }",
+            "  pm.sendRequest(req, (err, res) => { codes.push(err ? 0 : res.code); next(); });",
+            "}",
+            "next();"
+          ] } }],
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/1/fees" }
+        }
+      ]
+    }
+  ]
+}
