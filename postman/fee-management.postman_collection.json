@@ -29,6 +29,7 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "https://apim-feemgmt-k7x2pq.azure-api.net/fees" },
+    { "key": "logicAppUrl", "value": "https://management.azure.com/subscriptions/ab52cf91-293f-4448-a533-25914b622d86/resourceGroups/rg-feemgmt-eastasia/providers/Microsoft.Logic/workflows/logic-feemgmt-k7x2pq" },
     { "key": "tenantId", "value": "2145b90d-af2a-43cb-b93b-fa836c9b4b84" },
     { "key": "clientId", "value": "4956ab74-88d0-4bee-bf6e-7c6f7ee70bce" },
     { "key": "scope", "value": "api://e0412180-09d9-4bd2-8480-bdecf8871490/access_as_user openid profile offline_access" }
@@ -229,6 +230,37 @@
             "next();"
           ] } }],
           "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [{ "key": "Ocp-Apim-Subscription-Key", "value": "{{subscriptionKey}}" }], "url": "{{baseUrl}}/students/1/fees" }
+        }
+      ]
+    },
+    {
+      "name": "5 Reminders (Logic App, through Azure Resource Manager)",
+      "description": "Runs the reminder workflow now, the same as the portal's Run trigger button. These calls go to Azure's management API, not the Fee API, so they need an Azure management token instead of the Fee API token: in Git Bash run  az account get-access-token --resource https://management.azure.com --query accessToken -o tsv  and paste it into the environment's armToken. The token belongs to the account signed in to Azure CLI (it needs rights on the Logic App) and expires after about an hour.",
+      "item": [
+        {
+          "name": "Run the reminders now (sends real emails)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('202 Accepted: the run has started', () => pm.response.to.have.status(202));"] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{armToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [],
+            "url": "{{logicAppUrl}}/triggers/Daily_at_9am_India/run?api-version=2019-05-01"
+          }
+        },
+        {
+          "name": "Show the latest run",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const run = pm.response.json().value[0];",
+            "pm.test('a run exists', () => pm.expect(run).to.exist);",
+            "console.log('latest run', run.name, run.properties.status, run.properties.startTime);"
+          ] } }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{armToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": "{{logicAppUrl}}/runs?api-version=2019-05-01&$top=1"
+          }
         }
       ]
     }

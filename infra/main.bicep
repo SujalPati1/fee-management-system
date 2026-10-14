@@ -427,8 +427,64 @@ resource feeApiDiagnostics 'Microsoft.ApiManagement/service/apis/diagnostics@202
   }
 }
 
+// ---------------------------------------------------------------- Reminders: Logic App + Office 365 Outlook
+// The workflow (infra/logicapp/workflow.json) runs daily at 09:00 India time, asks the Fee API who
+// is overdue, and emails each student. It signs in to the API with its own managed identity, which
+// scripts/entra-setup.ps1 -ReminderPrincipalId gives the Reminders.Read role.
+
+// The Outlook connection. Microsoft allows this connector only with a person's sign-in, so after the
+// first deployment you authorize it once in the portal (docs/DEPLOYMENT.md); emails go from that mailbox.
+resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
+  name: 'office365'
+  location: location
+  properties: {
+    displayName: 'Office 365 Outlook (fee reminders)'
+    api: {
+      id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'office365')
+    }
+  }
+}
+
+resource reminderWorkflow 'Microsoft.Logic/workflows@2019-05-01' = {
+  name: 'logic-${appName}-${suffix}'
+  location: location
+  identity: { type: 'SystemAssigned' }
+  properties: {
+    state: 'Enabled'
+    definition: loadJsonContent('logicapp/workflow.json')
+    parameters: {
+      '$connections': {
+        value: {
+          office365: {
+            connectionId: office365Connection.id
+            connectionName: office365Connection.name
+            id: office365Connection.properties.api.id
+          }
+        }
+      }
+      apimBaseUrl: { value: '${apim.properties.gatewayUrl}/${feeApi.properties.path}' }
+      apimKey: { value: subscriptionLogicApp.listSecrets().primaryKey } // SecureString: hidden in run history
+      feeApiAudience: { value: 'api://${feeApiClientId}' }
+    }
+  }
+  dependsOn: [productApi, feeApiOperationPolicies]
+}
+
+// Run history goes to the same Log Analytics workspace as the Function and API Management.
+resource reminderWorkflowDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  scope: reminderWorkflow
+  name: 'to-log-analytics'
+  properties: {
+    workspaceId: logAnalytics.id
+    logs: [{ category: 'WorkflowRuntime', enabled: true }]
+    metrics: [{ category: 'AllMetrics', enabled: true }]
+  }
+}
+
 // ---------------------------------------------------------------- Outputs
 
+output logicAppName string = reminderWorkflow.name
+output logicAppPrincipalId string = reminderWorkflow.identity.principalId
 output apimGatewayUrl string = apim.properties.gatewayUrl
 output feeApiBaseUrl string = '${apim.properties.gatewayUrl}/${feeApi.properties.path}'
 output functionAppName string = functionApp.name

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "$connections": { "type": "Object", "defaultValue": {} },
+    "apimBaseUrl": { "type": "String" },
+    "apimKey": { "type": "SecureString" },
+    "feeApiAudience": { "type": "String" }
+  },
+  "triggers": {
+    "Daily_at_9am_India": {
+      "type": "Recurrence",
+      "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "timeZone": "India Standard Time",
+        "schedule": { "hours": [9], "minutes": [0] }
+      }
+    }
+  },
+  "actions": {
+    "Get_overdue_students": {
+      "type": "Http",
+      "description": "Asks the Fee API (through API Management) who is overdue today. The Function decides; this workflow only sends the emails. Retries every 30 s, 4 times, which covers a paused database waking up (503 with Retry-After).",
+      "inputs": {
+        "method": "GET",
+        "uri": "@{parameters('apimBaseUrl')}/reminders/overdue",
+        "headers": { "Ocp-Apim-Subscription-Key": "@parameters('apimKey')" },
+        "authentication": { "type": "ManagedServiceIdentity", "audience": "@parameters('feeApiAudience')" },
+        "retryPolicy": { "type": "fixed", "count": 4, "interval": "PT30S" }
+      },
+      "runtimeConfiguration": { "secureData": { "properties": ["inputs", "outputs"] } },
+      "runAfter": {}
+    },
+    "Too_many_overdue": {
+      "type": "If",
+      "description": "Safety check: more than 25 overdue students means the data is wrong, so nothing is sent (protects the sending mailbox and its 30 messages per minute limit).",
+      "expression": { "and": [{ "greater": ["@body('Get_overdue_students')?['count']", 25] }] },
+      "actions": {
+        "Stop_without_sending": {
+          "type": "Terminate",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "TooManyOverdue",
+              "message": "@{concat('Refusing to send ', string(body('Get_overdue_students')?['count']), ' reminders (the limit is 25). Check the data.')}"
+            }
+          }
+        }
+      },
+      "else": {
+        "actions": {
+          "For_each_overdue_student": {
+            "type": "Foreach",
+            "foreach": "@body('Get_overdue_students')?['students']",
+            "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+            "actions": {
+              "Send_reminder": {
+                "type": "ApiConnection",
+                "description": "Office 365 Outlook. Retries twice, a minute apart: fewer retries mean fewer duplicate emails if Outlook times out after sending.",
+                "inputs": {
+                  "host": { "connection": { "name": "@parameters('$connections')['office365']['connectionId']" } },
+                  "method": "post",
+                  "path": "/v2/Mail",
+                  "body": {
+                    "To": "@{items('For_each_overdue_student')?['email']}",
+                    "Subject": "Fee reminder: Rs. @{items('For_each_overdue_student')?['balance']} overdue since @{items('For_each_overdue_student')?['dueDate']}",
+                    "Body": "<p>Dear @{items('For_each_overdue_student')?['name']},</p><p>Our records show an unpaid fee balance of <b>Rs. @{items('For_each_overdue_student')?['balance']}</b>, which was due on <b>@{items('For_each_overdue_student')?['dueDate']}</b> (@{items('For_each_overdue_student')?['daysOverdue']} days ago). Student ID: @{items('For_each_overdue_student')?['studentId']}.</p><p>Please pay the outstanding amount at the earliest. If you have already paid, please ignore this message.</p><p>Accounts Office</p>",
+                    "Importance": "Normal"
+                  },
+                  "retryPolicy": { "type": "fixed", "count": 2, "interval": "PT60S" }
+                },
+                "runtimeConfiguration": { "secureData": { "properties": ["inputs"] } },
+                "runAfter": {}
+              }
+            }
+          }
+        }
+      },
+      "runAfter": { "Get_overdue_students": ["Succeeded"] }
+    }
+  },
+  "outputs": {}
+}
