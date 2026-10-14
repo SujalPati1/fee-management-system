@@ -1,5 +1,5 @@
 /**
- * GET /api/students/{id}/fees  (brief Task 3: fee details and payment status by StudentID)
+ * GET /api/students/{id}/fees  (fee details and payment status by StudentID)
  *
  * Who may call:
  *   Student   only for their own row: the token's oid must equal the row's EntraObjectId

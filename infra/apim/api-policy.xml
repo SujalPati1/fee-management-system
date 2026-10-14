@@ -1,8 +1,8 @@
 <!--
   Fee API policy: runs for every operation, before the operation's own role check.
   The gateway has already rejected calls without a valid API key (the API requires a subscription).
-    1. rate limit per API key                      (brief Task 3: rate limiting)
-    2. Entra ID token: this tenant, for the Fee API (technical requirement: Azure AD authentication)
+    1. rate limit per API key
+    2. Entra ID token: this tenant, for the Fee API
     3. forward to the Function with its key, which only API Management knows
   Named values in {{ }} are set by infra/main.bicep; function-key is stored as a secret.
 -->

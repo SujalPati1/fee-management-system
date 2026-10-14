@@ -1,5 +1,5 @@
 /**
- * Administrator endpoints (brief: "Query student fee details", Task 4 "update fee records").
+ * Administrator endpoints: query student fee details and update fee records.
  *
  *   GET   /api/students?status=Overdue&page=1   one page of 50, optionally by status
  *   PATCH /api/students/{id}                    change totalFee, paidAmount and/or dueDate

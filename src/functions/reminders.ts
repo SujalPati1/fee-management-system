@@ -1,5 +1,5 @@
 /**
- * GET /api/reminders/overdue  (brief Task 2: "Fetch records of students with overdue payments")
+ * GET /api/reminders/overdue  (the students with overdue payments, for the reminder emails)
  *
  * Called by the Logic App with its managed identity, whose token carries the Reminders.Read role.
  * That role can only be given to applications, so no person (not even a FeeAdmin) can call this.

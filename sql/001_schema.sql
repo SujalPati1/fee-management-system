@@ -2,7 +2,7 @@
 -- Safe to re-run: every object is created only if it does not exist yet.
 SET NOCOUNT ON;
 
--- Students: the brief's six columns, plus Email (reminders) and EntraObjectId (login link).
+-- Students: the six fee columns, plus Email (reminders) and EntraObjectId (login link).
 IF OBJECT_ID(N'dbo.Students', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Students (
@@ -28,7 +28,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Students_DueDate' AND
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_Students_EntraObjectId' AND object_id = OBJECT_ID(N'dbo.Students'))
     CREATE UNIQUE INDEX UX_Students_EntraObjectId ON dbo.Students (EntraObjectId) WHERE EntraObjectId IS NOT NULL;
 
--- Administrators: the brief's three columns, plus EntraObjectId (login link).
+-- Administrators: AdminID, Name and Role, plus EntraObjectId (login link).
 IF OBJECT_ID(N'dbo.Administrators', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Administrators (

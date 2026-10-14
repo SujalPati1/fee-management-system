@@ -1,4 +1,4 @@
--- 004_add_student.sql: add one student who can sign in (for example a reviewer), all values via -v:
+-- 004_add_student.sql: add one student who can sign in, all values via -v:
 --   Name, Course, TotalFee, PaidAmount, DueDate (YYYY-MM-DD), Email, EntraObjectId
 -- A past DueDate with PaidAmount < TotalFee makes the student overdue, so the next Logic App run emails them.
 -- Every variable sits inside quotes and is converted in SQL, so the file is also valid T-SQL

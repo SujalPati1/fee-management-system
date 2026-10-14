@@ -38,7 +38,7 @@ export function daysBetween(from: string, to: string): number {
 }
 
 /**
- * The brief allows three statuses:
+ * There are exactly three statuses:
  *   Paid            nothing is owed
  *   Overdue         something is owed and the due date is before today
  *   Partially Paid  something is owed and the due date has not passed (this includes nothing paid yet)
