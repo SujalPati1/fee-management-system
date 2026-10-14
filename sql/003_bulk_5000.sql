@@ -1,6 +1,7 @@
 -- 003_bulk_5000.sql: 5,000 generated students, to show the system handles at least 5,000 records.
--- They can never get a reminder: each one is fully paid or due one to three years from today,
--- and their emails use example.com, a domain reserved for examples that never receives mail.
+-- None of them is overdue for at least a year after this script runs: each one is fully paid
+-- or due one to three years later. After that the part-paid ones fall due one by one, so re-seed
+-- (or pay them) before then. Their emails use example.com, a domain reserved for examples.
 -- Safe to re-run: skipped if the bulk rows already exist.
 SET NOCOUNT ON;
 
