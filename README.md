@@ -9,7 +9,7 @@ A cloud-native student fee system on Azure. Students check their own fee status 
 - **Logic Apps** sends the reminders through **Office 365 Outlook**, with retry policies.
 - **Application Insights** monitors all of it.
 
-Everything is defined in this repository (Bicep, SQL scripts, policies, workflow, code) and deploys with the steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). A demo script is in [docs/DEMO.md](docs/DEMO.md).
+Everything is defined in this repository (Bicep, SQL scripts, policies, workflow, code) and deploys with the steps in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Architecture
 
@@ -67,7 +67,7 @@ Base URL: `https://apim-feemgmt-k7x2pq.azure-api.net/fees`. Every call needs the
 | `GET /students?status=Overdue&page=1` | `FeeAdmin` | one page of 50, `total`, each with the same fields |
 | `PATCH /students/{id}` body `{ "totalFee", "paidAmount", "dueDate" }` (any of them) | `FeeAdmin` | the updated record |
 | `GET /reminders/overdue` | `Reminders.Read` (the Logic App only) | overdue students with email, balance and days overdue |
-| `GET /api/health` (on the Function directly, no key) | anyone | `{ "status": "ok" }`; wakes a paused database before a demo |
+| `GET /api/health` (on the Function directly, no key) | anyone | `{ "status": "ok" }`; wakes a paused database |
 
 ```json
 GET /students/1/fees
@@ -100,7 +100,7 @@ Amounts are returned as exact strings (`"10000.10"`). Error bodies from the Func
 
 ## Reliability
 
-The database is serverless and pauses after 60 idle minutes; waking it took 74 seconds when measured. API Management's Consumption tier ends any request after 30 seconds, so the Function retries for at most 15 seconds and then answers `503` with `Retry-After: 30` while the database keeps waking. The Logic App retries every 30 seconds, four times. Before a demo, call `GET https://func-feemgmt-k7x2pq.azurewebsites.net/api/health` once: it waits up to two minutes and wakes everything.
+The database is serverless and pauses after 60 idle minutes; waking it took 74 seconds when measured. API Management's Consumption tier ends any request after 30 seconds, so the Function retries for at most 15 seconds and then answers `503` with `Retry-After: 30` while the database keeps waking. The Logic App retries every 30 seconds, four times. Call `GET https://func-feemgmt-k7x2pq.azurewebsites.net/api/health` once: it waits up to two minutes and wakes everything.
 
 ## Scalability (5,000+ students)
 

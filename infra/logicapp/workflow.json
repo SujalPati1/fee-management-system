@@ -65,7 +65,7 @@
                   "body": {
                     "To": "@{items('For_each_overdue_student')?['email']}",
                     "Subject": "Fee reminder: Rs. @{items('For_each_overdue_student')?['balance']} overdue since @{items('For_each_overdue_student')?['dueDate']}",
-                    "Body": "<p>Dear @{items('For_each_overdue_student')?['name']},</p><p>Our records show an unpaid fee balance of <b>Rs. @{items('For_each_overdue_student')?['balance']}</b>, which was due on <b>@{items('For_each_overdue_student')?['dueDate']}</b> (@{items('For_each_overdue_student')?['daysOverdue']} days ago). Student ID: @{items('For_each_overdue_student')?['studentId']}.</p><p>Please pay the outstanding amount at the earliest. If you have already paid, please ignore this message.</p><p>Accounts Office</p>",
+                    "Body": "<p>Dear @{items('For_each_overdue_student')?['name']},</p><p>Our records show an unpaid fee balance of <b>Rs. @{items('For_each_overdue_student')?['balance']}</b>, which was due on <b>@{items('For_each_overdue_student')?['dueDate']}</b> (@{items('For_each_overdue_student')?['daysOverdue']} days ago). Student ID: @{items('For_each_overdue_student')?['studentId']}.</p><p>Please pay the outstanding amount at the earliest. If you have already paid, please ignore this message.</p><p>Regards,<br>Accounts Office</p>",
                     "Importance": "Normal"
                   },
                   "retryPolicy": { "type": "fixed", "count": 2, "interval": "PT60S" }
